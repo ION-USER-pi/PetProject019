@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Management for Web Services</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <style>
+        :root {
+            --primary: #0a192f;
+            --secondary: #64ffda;
+            --text: #ccd6f6;
+            --bg-light: #112240;
+            --hover: #172a45;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        
+        body {
+            background-color: var(--primary);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        
+        header {
+            position: fixed;
+            width: 100%;
+            background-color: rgba(10, 25, 47, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        header.scrolled {
+            box-shadow: 0 10px 30px -10px rgba(2, 12, 27, 0.7);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+        }
+        
+        .logo {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: var(--secondary);
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-left: 2rem;
+        }
+        
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            color: var(--secondary);
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: var(--secondary);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        
+        .menu-toggle {
+            display: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--secondary);
+        }
+        
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 5rem;
+        }
+        
+        .hero-content {
+            max-width: 800px;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .hero h1 span {
+            color: var(--secondary);
+            display: block;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .btn {
+            display: inline-block;
+            background: transparent;
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 100%;
+            background-color: rgba(100, 255, 218, 0.1);
+            transition: all 0.3s ease;
+            z-index: -1;
+        }
+        
+        .btn:hover::before {
+            width: 100%;
+        }
+        
+        .section {
+            padding: 6rem 0;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 3rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-title::after {
+            content: '';
+            position: absolute;
+            width: 50%;
+            height: 2px;
+            bottom: -10px;
+            left: 0;
+            background-color: var(--secondary);
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .card {
+            background-color: var(--bg-light);
+            border-radius: 4px;
+            padding: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 30px -15px rgba(2, 12, 27, 0.7);
+        }
+        
+        .card h3 {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .card p {
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-content {
+            flex-grow: 1;
+        }
+        
+        .metric-boxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+        
+        .metric-box {
+            background-color: var(--bg-light);
+            border-radius: 4px;
+            padding: 1.5rem;
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .metric-value {
+            font-size: 3rem;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        
+        .metric-label {
+            font-size: 1rem;
+        }
+        
+        .tools {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+        
+        .tool {
+            background-color: var(--bg-light);
+            border-radius: 4px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .tool:hover {
+            background-color: var(--hover);
+        }
+        
+        .tool-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .tool-icon {
+            background-color: var(--secondary);
+            color: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .tool h3 {
+            font-size: 1.2rem;
+        }
+        
+        .tool p {
+            line-height: 1.6;
+            font-size: 0.9rem;
+        }
+        
+        #resource-monitor {
+            background-color: var(--bg-light);
+            border-radius: 4px;
+            padding: 2rem;
+            margin: 3rem 0;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        #resource-monitor h3 {
+            margin-bottom: 1.5rem;
+            color: var(--secondary);
+        }
+        
+        .progress-bar-container {
+            margin-bottom: 1.5rem;
+        }
+        
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-bg {
+            background-color: var(--primary);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: var(--secondary);
+            border-radius: 4px;
+            width: 0;
+            transition: width 1.5s ease;
+        }
+        
+        footer {
+            background-color: var(--bg-light);
+            padding: 3rem 0;
+            text-align: center;
+        }
+        
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .social-links {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            margin: 2rem 0;
+        }
+        
+        .social-links li {
+            margin: 0 1rem;
+        }
+        
+        .social-links a {
+            color: var(--text);
+            font-size: 1.5rem;
+            transition: color 0.3s ease;
+        }
+        
+        .social-links a:hover {
+            color: var(--secondary);
+        }
+        
+        .contact-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid var(--bg-light);
+            background-color: var(--primary);
+            color: var(--text);
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--secondary);
+        }
+        
+        textarea.form-control {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .bg-dot {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background-color: rgba(100, 255, 218, 0.15);
+            border-radius: 50%;
+        }
+        
+        /* Media Queries */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1rem;
+            }
+            
+            .nav-links {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 70%;
+                height: 100vh;
+                background-color: var(--bg-light);
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                z-index: 99;
+            }
+            
+            .nav-links.active {
+                transform: translateX(0);
+            }
+            
+            .nav-links li {
+                margin: 1.5rem 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+                z-index: 100;
+            }
+            
+            .menu-toggle.active {
+                color: var(--secondary);
+            }
+            
+            .section-title {
+                font-size: 1.8rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .metric-boxes {
+                flex-direction: column;
+            }
+            
+            .section {
+                padding: 4rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation" id="bg-animation"></div>
+    
+    <header id="header">
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">RM.webservices</a>
+                <ul class="nav-links">
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#strategies">Strategies</a></li>
+                    <li><a href="#tools">Tools</a></li>
+                    <li><a href="#monitoring">Monitoring</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+                <div class="menu-toggle" id="menu-toggle">☰</div>
+            </nav>
+        </div>
+    </header>
+    
+    <section class="hero" id="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 id="hero-title"><span>Resource Management</span> for Modern Web Services</h1>
+                <p id="hero-text">Optimize performance, reduce costs, and enhance user experience by implementing effective resource management strategies for your web services.</p>
+                <a href="#about" class="btn" id="hero-btn">Explore Strategies</a>
+            </div>
+        </div>
+    </section>
+    
+    <section class="section" id="about">
+        <div class="container">
+            <h2 class="section-title">Why Resource Management Matters</h2>
+            <div class="metric-boxes">
+                <div class="metric-box" id="metric1">
+                    <div class="metric-value" id="value1">42%</div>
+                    <div class="metric-label">Performance Improvement</div>
+                </div>
+                <div class="metric-box" id="metric2">
+                    <div class="metric-value" id="value2">35%</div>
+                    <div class="metric-label">Cost Reduction</div>
+                </div>
+                <div class="metric-box" id="metric3">
+                    <div class="metric-value" id="value3">87%</div>
+                    <div class="metric-label">User Satisfaction</div>
+                </div>
+            </div>
+            <p>Effective resource management is crucial for modern web services. As applications become more complex and user expectations rise, optimizing how resources are allocated, used, and monitored can make the difference between a seamless user experience and frustrated customers. Our approach focuses on balancing performance, cost, and scalability to create sustainable web services.</p>
+        </div>
+    </section>
+    
+    <section class="section" id="strategies">
+        <div class="container">
+            <h2 class="section-title">Key Strategies</h2>
+            <div class="cards">
+                <div class="card" id="card1">
+                    <div class="card-content">
+                        <h3>Load Balancing</h3>
+                        <p>Distribute network traffic efficiently across multiple servers to ensure no single server bears too much demand. This prevents server overload, optimizes resource utilization, and improves overall application availability and responsiveness.</p>
+                    </div>
+                    <a href="#" class="btn">Learn More</a>
+                </div>
+                <div class="card" id="card2">
+                    <div class="card-content">
+                        <h3>Caching Mechanisms</h3>
+                        <p>Implement strategic caching to store frequently accessed data closer to the client. This reduces database loads, decreases latency, and significantly improves response times while minimizing resource consumption.</p>
+                    </div>
+                    <a href="#" class="btn">Learn More</a>
+                </div>
+                <div class="card" id="card3">
+                    <div class="card-content">
+                        <h3>Auto-scaling Solutions</h3>
+                        <p>Deploy resources that automatically adjust based on demand. This ensures your application has exactly what it needs at any moment - scaling up during traffic spikes and down during quiet periods to optimize both performance and cost.</p>
+                    </div>
+                    <a href="#" class="btn">Learn More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="section" id="tools">
+        <div class="container">
+            <h2 class="section-title">Essential Tools</h2>
+            <div class="tools">
+                <div class="tool" id="tool1">
+                    <div class="tool-header">
+                        <div class="tool-icon">A</div>
+                        <h3>AWS CloudWatch</h3>
+                    </div>
+                    <p>Monitor resources and applications in real-time, collect and track metrics, and set alarms to automatically react to changes in your AWS resources.</p>
+                </div>
+                <div class="tool" id="tool2">
+                    <div class="tool-header">
+                        <div class="tool-icon">P</div>
+                        <h3>Prometheus</h3>
+                    </div>
+                    <p>An open-source monitoring system with a dimensional data model, flexible query language, and efficient time series database.</p>
+                </div>
+                <div class="tool" id="tool3">
+                    <div class="tool-header">
+                        <div class="tool-icon">G</div>
+                        <h3>Grafana</h3>
+                    </div>
+                    <p>Visualize metrics, logs, and traces from multiple sources in beautiful, flexible dashboards for better insight into your systems.</p>
+                </div>
+                <div class="tool" id="tool4">
+                    <div class="tool-header">
+                        <div class="tool-icon">N</div>
+                        <h3>New Relic</h3>
+                    </div>
+                    <p>Gain end-to-end visibility into your application performance, from frontend to backend services, with powerful analytics capabilities.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="section" id="monitoring">
+        <div class="container">
+            <h2 class="section-title">Real-time Monitoring</h2>
+            <div id="resource-monitor">
+                <h3>Current Resource Utilization</h3>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-label">
+                        <span>CPU Usage</span>
+                        <span id="cpu-value">78%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div class="progress-fill" id="cpu-bar" data-value="78"></div>
+                    </div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-label">
+                        <span>Memory Allocation</span>
+                        <span id="memory-value">64%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div class="progress-fill" id="memory-bar" data-value="64"></div>
+                    </div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-label">
+                        <span>Network Bandwidth</span>
+                        <span id="network-value">42%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div class="progress-fill" id="network-bar" data-value="42"></div>
+                    </div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-label">
+                        <span>Database Connections</span>
+                        <span id="db-value">91%</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div class="progress-fill" id="db-bar" data-value="91"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="section" id="contact">
+        <div class="container">
+            <h2 class="section-title">Get in Touch</h2>
+            <div class="contact-form">
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Your Name">
+                </div>
+                <div class="form-group">
+                    <input type="email" class="form-control" placeholder="Your Email">
+                </div>
+                <div class="form-group">
+                    <textarea class="form-control" placeholder="Your Message"></textarea>
+                </div>
+                <button type="submit" class="btn">Send Message</button>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <p>© 2025 Resource Management for Web Services. All rights reserved.</p>
+                <ul class="social-links">
+                    <li><a href="#">T</a></li>
+                    <li><a href="#">G</a></li>
+                    <li><a href="#">L</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        $(document).ready(function() {
+            // Menu toggle
+            $('#menu-toggle').click(function() {
+                $(this).toggleClass('active');
+                $('.nav-links').toggleClass('active');
+            });
+            
+            // Close menu when clicking a link
+            $('.nav-links a').click(function() {
+                $('.nav-links').removeClass('active');
+                $('#menu-toggle').removeClass('active');
+            });
+            
+            // Smooth scrolling
+            $('a[href^="#"]').on('click', function(e) {
+                e.preventDefault();
+                
+                var target = this.hash;
+                var $target = $(target);
+                
+                $('html, body').animate({
+                    'scrollTop': $target.offset().top - 100
+                }, 800, 'swing');
+            });
+            
+            // Header scroll effect
+            $(window).scroll(function() {
+                if ($(this).scrollTop() > 50) {
+                    $('#header').addClass('scrolled');
+                } else {
+                    $('#header').removeClass('scrolled');
+                }
+            });
+            
+            // Animated background
+            const bgAnimation = document.getElementById('bg-animation');
+            const dotCount = 50;
+            
+            for (let i = 0; i < dotCount; i++) {
+                const dot = document.createElement('div');
+                dot.classList.add('bg-dot');
+                
+                const size = Math.random() * 3 + 1;
+                dot.style.width = `${size}px`;
+                dot.style.height = `${size}px`;
+                
+                const posX = Math.random() * 100;
+                const posY = Math.random() * 100;
+                dot.style.left = `${posX}%`;
+                dot.style.top = `${posY}%`;
+                
+                const opacity = Math.random() * 0.5 + 0.1;
+                dot.style.opacity = opacity;
+                
+                bgAnimation.appendChild(dot);
+                
+                animateDot(dot);
+            }
+            
+            function animateDot(dot) {
+                const duration = Math.random() * 50 + 20;
+                const direction = Math.random() > 0.5 ? 1 : -1;
+                
+                gsap.to(dot, {
+                    x: `${Math.random() * 100 * direction}`,
+                    y: `${Math.random() * 100 * direction}`,
+                    duration: duration,
+                    ease: "none",
+                    repeat: -1,
+                    yoyo: true
+                });
+            }
+            
+            // Hero animations
+            gsap.to("#hero-title", {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.3
+            });
+            
+            gsap.to("#hero-text", {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.6
+            });
+            
+            gsap.to("#hero-btn", {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.9
+            });
+            
+            // Scroll animations
+            const animateOnScroll = function(entries, observer) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        if (entry.target.classList.contains('card')) {
+                            gsap.to(entry.target, {
+                                opacity: 1,
+                                y: 0,
+                                duration: 0.6,
+                                delay: 0.2 * Array.from(entry.target.parentNode.children).indexOf(entry.target)
+                            });
+                        } else if (entry.target.classList.contains('metric-box')) {
+                            gsap.to(entry.target, {
+                                opacity: 1,
+                                y: 0,
+                                duration: 0.6,
+                                delay: 0.2 * Array.from(entry.target.parentNode.children).indexOf(entry.target)
+                            });
+                            
+                            // Count up animation for metric values
+                            const valueEl = entry.target.querySelector('.metric-value');
+                            const value = valueEl.textContent;
+                            const numValue = parseInt(value);
+                            
+                            $({ countNum: 0 }).animate({ countNum: numValue }, {
+                                duration: 2000,
+                                easing: 'swing',
+                                step: function() {
+                                    valueEl.textContent = Math.floor(this.countNum) + '%';
+                                },
+                                complete: function() {
+                                    valueEl.textContent = value;
+                                }
+                            });
+                        } else if (entry.target.classList.contains('tool')) {
+                            gsap.to(entry.target, {
+                                opacity: 1,
+                                y: 0,
+                                duration: 0.6,
+                                delay: 0.15 * Array.from(entry.target.parentNode.children).indexOf(entry.target)
+                            });
+                        } else if (entry.target.id === 'resource-monitor') {
+                            gsap.to(entry.target, {
+                                opacity: 1,
+                                y: 0,
+                                duration: 0.6,
+                                onComplete: function() {
+                                    // Animate progress bars
+                                    $('.progress-fill').each(function() {
+                                        const value = $(this).data('value');
+                                        $(this).css('width', value + '%');
+                                    });
+                                }
+                            });
+                        }
+                        observer.unobserve(entry.target);
+                    }
+                });
+            };
+            
+            const observer = new IntersectionObserver(animateOnScroll, {
+                root: null,
+                threshold: 0.1
+            });
+            
+            // Observe elements to animate
+            document.querySelectorAll('.card, .metric-box, .tool, #resource-monitor').forEach(el => {
+                observer.observe(el);
+            });
+            
+            // Randomize progress bar values on interval
+            setInterval(function() {
+                updateProgressBar('cpu-bar', 'cpu-value', 60, 90);
+                updateProgressBar('memory-bar', 'memory-value', 50, 80);
+                updateProgressBar('network-bar', 'network-value', 30, 70);
+                updateProgressBar('db-bar', 'db-value', 75, 95);
+            }, 5000);
+            
+            function updateProgressBar(barId, valueId, min, max) {
+                const newValue = Math.floor(Math.random() * (max - min + 1)) + min;
+                $(`#${barId}`).css('width', newValue + '%');
+                $(`#${valueId}`).text(newValue + '%');
+            }
+        });
+    </script>
+</body>
+</html>
